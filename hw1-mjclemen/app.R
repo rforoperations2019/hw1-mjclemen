@@ -5,6 +5,7 @@ library(stringr)
 library(dplyr)
 library(tools)
 library(rlist)
+library(scales)
 
 # read in csv file containing data on Pittsburgh's capital project budgets
 budget <- read.csv("2014 Pittsburgh Capital Project Budget.csv")
@@ -122,19 +123,7 @@ server <- function(input, output, session) {
     ggplot(data = budget, aes_string(x = input$x, y = input$y)) +
       geom_point() + labs(x = str_replace_all(str_replace_all(input$x, "_", " "),"X",""),
                           y = str_replace_all(str_replace_all(input$y, "_", " "),"X",""),
-                          title = "Capital Project Budget Comparison between Years")
-    
-  })
-  
-  output$barchart <- renderPlot({
-    
-    ggplot(data = budget, aes_string(x = input$x, y = input$y)) +
-      geom_point() +
-      labs(title = "Capital Project Budget Comparison between Years")
-    +
-      scale_x_continuous(limits = c(0, max(as.numeric(input$x)))) +
-      scale_y_continuous(limits = c(0, max(as.numeric(input$y))))
-    
+                          title = "Individual Capital Project Budget Comparison between Years (in $)") + xlim(0, 1000000) + ylim(0, 1000000)
   })
   
   output$barplot <- renderPlot({
@@ -145,8 +134,11 @@ server <- function(input, output, session) {
     
     cat(file=stderr(), "department is ", unique(budget_filtered()$Responsible_Department), "\n")
     
+    # budget_sum <- format(budget_sum,scientific=FALSE)
+    
     ggplot(data = budget_filtered(), aes(x = unique(budget_filtered()$Responsible_Department), y = budget_sum)) +
-      geom_col() + labs(x = "Department", y = "Total Budget for Projects", title = "2020 Total Budget For Given Departments in Pittsburgh")
+      geom_col() + labs(x = "Department", y = "Total Budget for Projects", title = "2020 Total Budget For Given Departments in Pittsburgh") +
+      scale_y_continuous(labels = comma)
   })
   
   output$budgettable <- DT::renderDataTable({
