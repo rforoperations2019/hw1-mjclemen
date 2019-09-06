@@ -120,10 +120,9 @@ server <- function(input, output, session) {
   output$scatterplot <- renderPlot({
     
     ggplot(data = budget, aes_string(x = input$x, y = input$y)) +
-      geom_point() + labs(title = "Capital Project Budget Comparison between Years")
-    # +
-    #   scale_x_continuous(limits = c(min(as.numeric(input$x)), max(as.numeric(input$x)))) +
-    #   scale_y_continuous(limits = c(min(as.numeric(input$y)), max(as.numeric(input$y))))
+      geom_point() + labs(x = str_replace_all(str_replace_all(input$x, "_", " "),"X",""),
+                          y = str_replace_all(str_replace_all(input$y, "_", " "),"X",""),
+                          title = "Capital Project Budget Comparison between Years")
     
   })
   
@@ -147,7 +146,7 @@ server <- function(input, output, session) {
     cat(file=stderr(), "department is ", unique(budget_filtered()$Responsible_Department), "\n")
     
     ggplot(data = budget_filtered(), aes(x = unique(budget_filtered()$Responsible_Department), y = budget_sum)) +
-      geom_col() + xlab("Department") + ylab("Total Budget for Projects")
+      geom_col() + labs(x = "Department", y = "Total Budget for Projects", title = "2020 Total Budget For Given Departments in Pittsburgh")
   })
   
   output$budgettable <- DT::renderDataTable({
