@@ -4,6 +4,7 @@ library(DT)
 library(stringr)
 library(dplyr)
 library(tools)
+library(rlist)
 
 # read in csv file containing data on Pittsburgh's capital project budgets
 budget <- read.csv("2014 Pittsburgh Capital Project Budget.csv")
@@ -85,30 +86,34 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   # Create a subset of data filtering for selected title types ------
-  budget_subset <- reactive({
-    req(input$selected_department) # ensure availablity of value before proceeding
-    filter(budget_updated, input$selected_department)
-  })
-  
-  # observe({
-  #   
-  #   initial_choices <- c("2014 Total Budget" = "X2014_Total",
-  #               "2015 Total Budget" = "X2015_Total",
-  #               "2016 Total Budget" = "X2016_Total",
-  #               "2017 Total Budget" = "X2017_Total",
-  #               "2018 Total Budget" = "X2018_Total",
-  #               "2019 Total Budget" = "X2019_Total",
-  #               "2020 Total Budget" = "X2020_Total")
-  #   
-  #   updateSelectInput(session, inputId = y, choices = remove()
+  # budget_subset <- reactive({
+  #   req(input$selected_department) # ensure availablity of value before proceeding
+  #   filter(budget, input$selected_department %in% budget)
   # })
+  
+  observe({
+
+    initial_choices <- c("2014 Total Budget" = "X2014_Total",
+                "2015 Total Budget" = "X2015_Total",
+                "2016 Total Budget" = "X2016_Total",
+                "2017 Total Budget" = "X2017_Total",
+                "2018 Total Budget" = "X2018_Total",
+                "2019 Total Budget" = "X2019_Total",
+                "2020 Total Budget" = "X2020_Total")
+    
+    x_axis_name <- names(which(initial_choices == input$x))
+    new_choices <- list.remove(initial_choices, x_axis_name)
+
+    updateSelectInput(session, inputId = input$y, choices = new_choices)
+  })
    
   output$scatterplot <- renderPlot({
     
-    ggplot(data = budget_updated, aes_string(x = input$x, y = input$y)) +
-      geom_point() +
-      scale_x_continuous(limits = c(min(as.numeric(input$x)), max(as.numeric(input$x)))) +
-      scale_y_continuous(limits = c(min(as.numeric(input$y)), max(as.numeric(input$y))))
+    ggplot(data = budget, aes_string(x = input$x, y = input$y)) +
+      geom_point()
+    # +
+    #   scale_x_continuous(limits = c(min(as.numeric(input$x)), max(as.numeric(input$x)))) +
+    #   scale_y_continuous(limits = c(min(as.numeric(input$y)), max(as.numeric(input$y))))
     
   })
   
@@ -119,7 +124,7 @@ server <- function(input, output, session) {
   # })
   
   output$budgettable <- DT::renderDataTable({
-    DT::datatable(budget_subset, options = list(orderClasses = TRUE))
+    DT::datatable(budget, options = list(orderClasses = TRUE))
   })
 }
 
