@@ -143,6 +143,7 @@ server <- function(input, output, session) {
       scale_y_continuous(labels = comma)
   })
   
+  # Plot boxplot, displaying a given year's projects and the budget for the project
   output$boxplot <- renderPlot({
     x.axis <- switch(input$x.box,
                      "X2014_Total" = 4,
