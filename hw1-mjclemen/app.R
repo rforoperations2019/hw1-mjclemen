@@ -53,11 +53,12 @@ ui <- fluidPage(
                                 "2020 Total Budget" = "X2020_Total"),
                     selected = "X2020_Total"),
         
+        
         # Select what department to plot ------------------------
         checkboxGroupInput(inputId = "selected.department",
                            label = "Select Department(s) to view in Data Table and Bar Chart:",
                            choices = sort(unique(budget$"Responsible_Department")),
-                           selected = c("Public Works", "Finance"),
+                           selected = c("Public Works", "Finance")),
         
         # Select year to display projects in a boxplot -----------------------------------
         radioButtons(inputId = "x.box", 
