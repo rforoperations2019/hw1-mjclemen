@@ -5,8 +5,8 @@ account: mandelclemente
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1160486
-bundleId: 2393318
+bundleId: 2393563
 url: https://mandelclemente.shinyapps.io/hw1-mjclemen/
-when: 1567816250.05853
+when: 1567825666.58824
 asMultiple: FALSE
 asStatic: FALSE
