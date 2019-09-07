@@ -7,24 +7,24 @@ library(tools)
 library(rlist)
 library(scales)
 
-# read in csv file containing data on Pittsburgh's capital project budgets
+# Read in csv file containing data on Pittsburgh's capital project budgets
 budget <- read.csv("2014 Pittsburgh Capital Project Budget.csv")
 
-# clean the data by removing dollar signs and commas
+# Clean the data by removing dollar signs and commas
 for(i in 4:15) {
   budget[,i] <- as.numeric(gsub('[$,]', '', budget[,i]))
 }
 
+# Remove any projects that aren't linked to a department
 budget <- budget[!(budget$Responsible_Department == ""), ]
 
-# replace any missing budgets with 0
+# Replace any missing budget amounts with 0
 budget[is.na(budget)] <- 0
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-   
-   # Application title
-   titlePanel("Pittsburgh's 2014 Capital Project Budget"),
+
+  titlePanel ("Pittsburgh Capital Project Budget Information"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
@@ -53,24 +53,19 @@ ui <- fluidPage(
                                 "2020 Total Budget" = "X2020_Total"),
                     selected = "X2020_Total"),
         
-        # Select variable for color -----------------------------------
-        selectInput(inputId = "color_by", 
-                    label = "Choose how to color the scatterplot:",
-                    choices = c("Responsible Department" = "Responsible_Department", 
-                                "Functional Area" = "Functional_Area"),
-                    selected = "Functional_Area"),
+        # Select functional area to plot in a bar plot -----------------------------------
+        radioButtons(inputId = "chooseFunction", 
+                    label = "Choose which Functional Area to Plot in a Bar plot:",
+                    choices = sort(unique(budget$"Functional_Area")),
+                    selected = "Engineering and Construction"),
         
         # Select what department to plot ------------------------
-        checkboxGroupInput(inputId = "selected_department",
-                           label = "Select Department(s) to view in Data Table:",
+        checkboxGroupInput(inputId = "selected.department",
+                           label = "Select Department(s) to view in Data Table and Bar Chart:",
                            choices = sort(unique(budget$"Responsible_Department")),
                            selected = "Public Works"),
         
-        sliderInput(inputId = "year_bargraph",
-                  label = "Choose a year to plot in bar graph (2014-2020)",
-                  min = 2014, max = 2020, value = 2015),
-        
-        downloadButton("download_button", "Download Budget Data File")
+        downloadButton("downloadBudget", "Download Budget Data File")
       ),
       
       # Show a plot of the generated distribution
@@ -87,7 +82,7 @@ ui <- fluidPage(
         # Line break for visual
         br(),
         
-        plotOutput(outputId = "barplot")
+        plotOutput(outputId = "bargraph")
       )
    )
 )
@@ -97,14 +92,13 @@ server <- function(input, output, session) {
   
  # Create a subset of data filtering for selected title types ------
   budget_filtered <- reactive({
-    req(input$selected_department) # ensure availablity of value before proceeding
-    budget <- droplevels(filter(budget, Responsible_Department %in% input$selected_department))
-    # cat(file=stderr(), "budget function returns: ", budget$Functional_Area, "\n")
+    req(input$selected.department) # ensure availablity of value before proceeding
+    budget <- droplevels(filter(budget, Responsible_Department %in% input$selected.department))
   })
   
   observe({
 
-    initial_choices <- c("2014 Total Budget" = "X2014_Total",
+    initial.choices <- c("2014 Total Budget" = "X2014_Total",
                 "2015 Total Budget" = "X2015_Total",
                 "2016 Total Budget" = "X2016_Total",
                 "2017 Total Budget" = "X2017_Total",
@@ -112,10 +106,10 @@ server <- function(input, output, session) {
                 "2019 Total Budget" = "X2019_Total",
                 "2020 Total Budget" = "X2020_Total")
     
-    x_axis_name <- names(which(initial_choices == input$x))
-    new_choices <- list.remove(initial_choices, x_axis_name)
+    x.axis.name <- names(which(initial.choices == input$x))
+    new.choices <- list.remove(initial.choices, x.axis.name)
 
-    updateSelectInput(session, inputId = "y", choices = new_choices)
+    updateSelectInput(session, inputId = "y", choices = new.choices)
   })
    
   output$scatterplot <- renderPlot({
@@ -126,33 +120,28 @@ server <- function(input, output, session) {
                           title = "Individual Capital Project Budget Comparison between Years (in $)") + xlim(0, 1000000) + ylim(0, 1000000)
   })
   
-  output$barplot <- renderPlot({
-
-    budget_sum <- tapply(budget_filtered()$X2014_Total, budget_filtered()$Responsible_Department, FUN=sum)
-
-    cat(file=stderr(), "budget sum is ", budget_sum, "\n")
-    
-    cat(file=stderr(), "department is ", unique(budget_filtered()$Responsible_Department), "\n")
-    
-    # budget_sum <- format(budget_sum,scientific=FALSE)
-    
-    ggplot(data = budget_filtered(), aes(x = unique(budget_filtered()$Responsible_Department), y = budget_sum)) +
-      geom_col() + labs(x = "Department", y = "Total Budget for Projects", title = "2020 Total Budget For Given Departments in Pittsburgh") +
+  # Plot bar graph, displaying the department(s) selected by the user with the its Total 2020 Budget Cost
+  output$bargraph <- renderPlot({
+    ggplot(data = budget_filtered(), aes(x = Responsible_Department), y = X2020_Total) +
+      geom_bar() + labs(x = "Department", y = "Total Budget for Projects", title = "2020 Total Budget For Given Departments in Pittsburgh") +
       scale_y_continuous(labels = comma)
   })
   
+  # Display a data table that shows all of the budget info from 2014 - 2020 for each indiviudal projects, filtered on the project's
+  # department. The departments to be shown are selected by the user
   output$budgettable <- DT::renderDataTable({
     DT::datatable(data = budget_filtered()[,1:10], options = list(orderClasses = TRUE))
   })
   
-  # Downloadable csv of budget data filtered by department
-  output$downloadData <- downloadHandler(
+  # Downloadable csv of budget data filtered by department.
+  # Note -- filename and file type (csv) work in web browser, not RStudio. RStudio glitch from what I have read about it
+  output$downloadBudget <- downloadHandler(
     filename = function() {
-      paste("2014 Pittsburgh Capital Project Budget -", input$selected_department,
+      paste("2014 Pittsburgh Capital Project Budget -", input$selected.department,
             ".csv", sep = "")
     },
     content = function(file) {
-      write.csv(budget, file, row.names = FALSE)
+      write.csv(budget_filtered(), file, row.names = FALSE)
     }
   )
 }
