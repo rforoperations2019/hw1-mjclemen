@@ -53,11 +53,17 @@ ui <- fluidPage(
                                 "2020 Total Budget" = "X2020_Total"),
                     selected = "X2020_Total"),
         
-        # Select functional area to plot in a bar plot -----------------------------------
-        radioButtons(inputId = "chooseFunction", 
-                    label = "Choose which Functional Area to Plot in a Bar plot:",
-                    choices = sort(unique(budget$"Functional_Area")),
-                    selected = "Engineering and Construction"),
+        # Select year to display projects in a boxplot -----------------------------------
+        radioButtons(inputId = "x.box", 
+                    label = "Choose which Year to View Project Budgets Disparity:",
+                    choices = c("2014" = "X2014_Total",
+                                "2015" = "X2015_Total",
+                                "2016" = "X2016_Total",
+                                "2017" = "X2017_Total",
+                                "2018" = "X2018_Total",
+                                "2019" = "X2019_Total",
+                                "2020" = "X2020_Total"),
+                    selected = "X2016_Total"),
         
         # Select what department to plot ------------------------
         checkboxGroupInput(inputId = "selected.department",
@@ -82,12 +88,15 @@ ui <- fluidPage(
         # Line break for visual
         br(),
         
-        plotOutput(outputId = "bargraph")
+        # Show bar graph ---------------------------------------------
+        plotOutput(outputId = "barchart"),
+        
+        plotOutput(outputId = "boxplot")
       )
    )
 )
 
-# Define server logic required to draw a histogram
+# Define server logic required to plot graphs, chart, and dataframe
 server <- function(input, output, session) {
   
  # Create a subset of data filtering for selected title types ------
@@ -96,6 +105,7 @@ server <- function(input, output, session) {
     budget <- droplevels(filter(budget, Responsible_Department %in% input$selected.department))
   })
   
+  # Update the y-axis options, given the selected x-axis options. Avoid plotting the same year on both x and y axis
   observe({
 
     initial.choices <- c("2014 Total Budget" = "X2014_Total",
@@ -108,23 +118,43 @@ server <- function(input, output, session) {
     
     x.axis.name <- names(which(initial.choices == input$x))
     new.choices <- list.remove(initial.choices, x.axis.name)
-
     updateSelectInput(session, inputId = "y", choices = new.choices)
   })
    
+  # Plot scatterplot, displaying individual project's budgets between any two years from 2014 - 2020
   output$scatterplot <- renderPlot({
-    
     ggplot(data = budget, aes_string(x = input$x, y = input$y)) +
       geom_point() + labs(x = str_replace_all(str_replace_all(input$x, "_", " "),"X",""),
                           y = str_replace_all(str_replace_all(input$y, "_", " "),"X",""),
-                          title = "Individual Capital Project Budget Comparison between Years (in $)") + xlim(0, 1000000) + ylim(0, 1000000)
+                          title = "Individual Capital Project Budget Comparison between Years (in $)") +
+      xlim(0, 1000000) + ylim(0, 1000000)
   })
   
-  # Plot bar graph, displaying the department(s) selected by the user with the its Total 2020 Budget Cost
-  output$bargraph <- renderPlot({
+  # Plot bar chart, displaying the department(s) selected by the user with the its Total 2020 Budget Cost
+  output$barchart <- renderPlot({
     ggplot(data = budget_filtered(), aes(x = Responsible_Department), y = X2020_Total) +
-      geom_bar() + labs(x = "Department", y = "Total Budget for Projects", title = "2020 Total Budget For Given Departments in Pittsburgh") +
+      geom_bar() + labs(x = "Department(s)",
+                        y = "Total Budget for Projects in a Given Department",
+                        title = "2020 Total Budget For Given Departments in Pittsburgh") +
       scale_y_continuous(labels = comma)
+  })
+  
+  output$boxplot <- renderPlot({
+    x.axis <- switch(input$x.box,
+                     "X2014_Total" = 4,
+                     "X2015_Total" = 5,
+                     "X2016_Total" = 6,
+                     "X2017_Total" = 7,
+                     "X2018_Total" = 8,
+                     "X2019_Total" = 9,
+                     "X2020_Total" = 10)
+    
+    
+    options(scipen=10)
+    boxplot(budget[,x.axis],
+            xlab = str_replace_all(str_replace_all(input$x.box, "_Total", " Projects"),"X",""),
+            ylab = "Budget ($)",
+            main = "Project Budgets in a Given Year")
   })
   
   # Display a data table that shows all of the budget info from 2014 - 2020 for each indiviudal projects, filtered on the project's
