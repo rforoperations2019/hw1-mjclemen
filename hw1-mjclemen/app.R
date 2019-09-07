@@ -92,6 +92,9 @@ ui <- fluidPage(
         # Show bar graph ---------------------------------------------
         plotOutput(outputId = "barchart"),
         
+        # Line break for visual
+        br(),
+        
         plotOutput(outputId = "boxplot")
       )
    )
@@ -133,8 +136,8 @@ server <- function(input, output, session) {
   
   # Plot bar chart, displaying the department(s) selected by the user with the its Total 2020 Budget Cost
   output$barchart <- renderPlot({
-    ggplot(data = budget_filtered(), aes(x = Responsible_Department), y = X2020_Total) +
-      geom_bar() + labs(x = "Department(s)",
+    ggplot(data = budget_filtered(), aes(x = Responsible_Department, y = X2020_Total)) +
+      geom_bar(stat="identity") + labs(x = "Department(s)",
                         y = "Total Budget for Projects in a Given Department",
                         title = "2020 Total Budget For Given Departments in Pittsburgh") +
       scale_y_continuous(labels = comma)
